@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vocab Daily — Học từ vựng tiếng Anh</title>
+<title>Vocab Daily — Bản nâng cấp</title>
 <style>
 :root{--green:#173d35;--green2:#285449;--mint:#d4f0c8;--bg:#f4f7f5;--card:#fff;--text:#182521;--muted:#66756f;--line:#e1e9e4;--accent:#e7f3ec;--red:#b83b42;--gold:#d9a441}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -50,6 +50,7 @@ select,input,textarea{width:100%;border:1px solid #d7e1db;background:white;borde
     </div>
     <button class="primary" style="width:100%" id="flipBtn">Lật thẻ xem nghĩa</button>
     <div class="actions"><button class="outline" id="prevBtn">← Từ trước</button><button class="secondary" id="nextBtn">Từ tiếp →</button></div>
+    <div class="actions"><button class="outline" id="speakWordBtn">🔊 Nghe từ</button><button class="outline" id="speakExampleBtn">🔊 Nghe câu ví dụ</button></div>
     <div class="actions"><button class="outline" id="reviewBtn">↻ Cần ôn lại</button><button class="primary" id="knownBtn">✓ Tôi đã nhớ</button></div>
     <p class="sub" id="cardExample" style="margin:14px 0 0"></p>
   </div>
@@ -80,7 +81,7 @@ select,input,textarea{width:100%;border:1px solid #d7e1db;background:white;borde
       <div class="stat" style="background:#edf5ef;color:#173d35;border:0"><span style="color:#66756f">Tỷ lệ nhớ</span><strong id="pRate">0%</strong></div>
       <div class="stat" style="background:#edf5ef;color:#173d35;border:0"><span style="color:#66756f">Mục tiêu/ngày</span><strong id="pGoal">10</strong></div>
     </div>
-    <label for="dailyGoal">Mục tiêu từ mới mỗi ngày</label><select id="dailyGoal"><option value="5">5 từ — nhẹ nhàng</option><option value="10" selected>10 từ — đều đặn</option><option value="20">20 từ — tăng tốc</option><option value="30">30 từ — thử thách</option></select>
+    <label for="dailyGoal">Mục tiêu từ mới mỗi ngày</label><select id="dailyGoal"><option value="5">5 từ — nhẹ nhàng</option><option value="10">10 từ — đều đặn</option><option value="20">20 từ — tăng tốc</option><option value="30">30 từ — thử thách</option></select>
     <div style="margin-top:18px"><div class="row between"><strong>Tiến độ mục tiêu hôm nay</strong><span id="todayCount" class="sub">0 / 10</span></div><div class="progress"><div id="todayProgress"></div></div></div>
     <h3 style="margin-top:24px">Sao lưu dữ liệu</h3><p class="sub">Tải bản sao lưu để không mất danh sách khi đổi thiết bị hoặc trình duyệt.</p>
     <div class="row mobile-col"><button class="secondary grow" id="backupBtn">Tải bản sao lưu JSON</button><button class="outline grow" id="restoreBtn">Khôi phục JSON</button><input type="file" id="restoreFile" accept=".json" hidden></div>
@@ -118,7 +119,7 @@ let state;
 try{state=JSON.parse(localStorage.getItem(STORE))||{};}catch(e){state={};}
 state.words=Array.isArray(state.words)&&state.words.length?state.words:starterWords;
 state.known=Array.isArray(state.known)?state.known:[];
-state.goal=Number(state.goal)||10;
+state.goal=Number(state.goal)||20;
 state.daily=state.daily||{};
 state.review=Array.isArray(state.review)?state.review:[];
 let currentIndex=0,flipped=false,filtered=[],quiz=[],quizIndex=0,quizAnswers={},quizChecked=false;
@@ -160,15 +161,38 @@ $("quizScore").textContent=quizChecked?`Điểm: ${quiz.filter(x=>quizAnswers[x.
 $("quizArea").innerHTML=`<div class="quizq"><div class="sub">TỪ TIẾNG ANH</div><div class="word" style="font-size:32px">${esc(w.en)}</div><div class="options">${options.map(o=>{let cls="option"+(quizAnswers[w.en]===o?" selected":"");if(quizChecked&&o===correct)cls+=" correct";else if(quizChecked&&quizAnswers[w.en]===o)cls+=" wrong";return `<button class="${cls}" data-answer="${esc(o)}" ${quizChecked?"disabled":""}>${esc(o)}</button>`}).join("")}</div>${quizChecked?`<p style="color:${quizAnswers[w.en]===correct?'#23764e':'#b83b42'}">${quizAnswers[w.en]===correct?'Chính xác!':'Đáp án đúng: '+esc(correct)}</p>`:""}</div>`;
 $("checkQuiz").hidden=quizChecked;$("nextQuiz").hidden=!quizChecked;$("nextQuiz").textContent=quizIndex===quiz.length-1?"Xem kết quả":"Câu tiếp theo →";
 }
-function showTab(name){document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==name);document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));if(name==="quiz"&&!quiz.length)startQuiz();if(name==="library")renderLibrary();if(name==="progress"){$("dailyGoal").value=state.goal;renderStats();}}
+
+function speakText(text, lang="en-US"){
+ if(!("speechSynthesis" in window)){alert("Trình duyệt này chưa hỗ trợ đọc văn bản.");return;}
+ window.speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(String(text||""));
+ u.lang=lang;u.rate=0.85;window.speechSynthesis.speak(u);
+}
+function renderSmartReview(){
+ const due=state.words.filter(w=>state.review.includes(w.en)||!state.known.includes(w.en));
+ const el=$("smartReviewSummary");
+ if(el) el.textContent=`${due.length} từ đang cần học/ôn lại. Từ đã đánh dấu cần ôn sẽ được ưu tiên trước.`;
+}
+function startSmartReview(){
+ const due=state.words.filter(w=>state.review.includes(w.en)||!state.known.includes(w.en));
+ if(!due.length){alert("Bạn đã đánh dấu nhớ tất cả từ. Hãy thêm từ mới để tiếp tục!");return;}
+ const first=due[0],cat=first.cat||"Khác";
+ $("categoryFilter").value=[...$("categoryFilter").options].some(o=>o.value===cat)?cat:"all";
+ getFiltered();currentIndex=Math.max(0,filtered.findIndex(w=>w.en===first.en));flipped=false;
+ renderCard();showTab("learn");
+}
+\nfunction showTab(name){document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==name);document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));if(name==="quiz"&&!quiz.length)startQuiz();if(name==="library")renderLibrary();if(name==="progress"){$("dailyGoal").value=state.goal;renderStats();renderSmartReview();}}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
 $("flashcard").addEventListener("click",()=>{flipped=!flipped;renderCard()});$("flashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flipped=!flipped;renderCard();}});
 $("flipBtn").onclick=()=>{flipped=!flipped;renderCard()};
+$("speakWordBtn").onclick=()=>{let w=filtered[currentIndex];if(w)speakText(w.en,"en-US");};
+$("speakExampleBtn").onclick=()=>{let w=filtered[currentIndex];if(w)speakText(w.example||w.en,"en-US");};
+$("startReviewBtn").onclick=startSmartReview;
 $("prevBtn").onclick=()=>{if(currentIndex>0){currentIndex--;flipped=false;renderCard();}};
 $("nextBtn").onclick=()=>{if(currentIndex<filtered.length-1){currentIndex++;flipped=false;renderCard();}};
 $("categoryFilter").onchange=()=>{currentIndex=0;flipped=false;renderCard();};
-$("knownBtn").onclick=()=>{let w=filtered[currentIndex];if(!w)return;if(!state.known.includes(w.en)){state.known.push(w.en);state.daily[todayKey()]=todayCount()+1;}state.review=state.review.filter(x=>x!==w.en);save();renderStats();renderCard();};
-$("reviewBtn").onclick=()=>{let w=filtered[currentIndex];if(!w)return;if(!state.review.includes(w.en))state.review.push(w.en);state.known=state.known.filter(x=>x!==w.en);save();renderStats();renderCard();};
+$("knownBtn").onclick=()=>{let w=filtered[currentIndex];if(!w)return;if(!state.known.includes(w.en)){state.known.push(w.en);state.daily[todayKey()]=todayCount()+1;}state.review=state.review.filter(x=>x!==w.en);save();renderStats();renderSmartReview();renderCard();};
+$("reviewBtn").onclick=()=>{let w=filtered[currentIndex];if(!w)return;if(!state.review.includes(w.en))state.review.push(w.en);state.known=state.known.filter(x=>x!==w.en);save();renderStats();renderSmartReview();renderCard();};
 $("searchWords").oninput=renderLibrary;
 $("wordList").onclick=e=>{let study=e.target.closest("[data-study]"),del=e.target.closest("[data-delete]");if(study){let idx=state.words.findIndex(w=>w.en===study.dataset.study);let cat=state.words[idx].cat||"Khác";$("categoryFilter").value=[...$("categoryFilter").options].some(o=>o.value===cat)?cat:"all";getFiltered();currentIndex=Math.max(0,filtered.findIndex(w=>w.en===study.dataset.study));flipped=false;renderCard();showTab("learn");}if(del){let en=del.dataset.delete;if(confirm(`Xóa từ "${en}" khỏi kho?`)){state.words=state.words.filter(w=>w.en!==en);state.known=state.known.filter(x=>x!==en);state.review=state.review.filter(x=>x!==en);save();categories();renderStats();renderLibrary();renderCard();}}};
 $("addWords").onclick=()=>{let lines=$("newWords").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),added=0;for(let line of lines){let p=line.split(/\s+-\s+/);if(p.length<2)continue;let en=p[0].trim(),vi=p[1].trim(),ipa=(p[2]||"").trim();if(!en||!vi||state.words.some(w=>w.en.toLowerCase()===en.toLowerCase()))continue;state.words.push({en,vi,ipa,cat:"Từ của tôi",level:"Mới",example:""});added++;}if(added){save();$("newWords").value="";categories();renderStats();renderCard();renderLibrary();alert(`Đã thêm ${added} từ mới.`);}else alert("Chưa thêm được từ nào. Hãy kiểm tra định dạng hoặc từ bị trùng.");};
