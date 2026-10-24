@@ -181,7 +181,8 @@ function startSmartReview(){
  getFiltered();currentIndex=Math.max(0,filtered.findIndex(w=>w.en===first.en));flipped=false;
  renderCard();showTab("learn");
 }
-\nfunction showTab(name){document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==name);document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));if(name==="quiz"&&!quiz.length)startQuiz();if(name==="library")renderLibrary();if(name==="progress"){$("dailyGoal").value=state.goal;renderStats();renderSmartReview();}}
+
+function showTab(name){document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==name);document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));if(name==="quiz"&&!quiz.length)startQuiz();if(name==="library")renderLibrary();if(name==="progress"){$("dailyGoal").value=state.goal;renderStats();renderSmartReview();}}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
 $("flashcard").addEventListener("click",()=>{flipped=!flipped;renderCard()});$("flashcard").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flipped=!flipped;renderCard();}});
 $("flipBtn").onclick=()=>{flipped=!flipped;renderCard()};
